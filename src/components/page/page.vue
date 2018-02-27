@@ -6,6 +6,12 @@
                 <ui-list-item title="SQL 工具" to="/">
                     <ui-icon slot="left" value="grade"/>
                 </ui-list-item>
+                <ui-list-item title="SQL 生成 Java 代码" to="/code/generate">
+                    <ui-icon slot="left" value="grade"/>
+                </ui-list-item>
+                <ui-list-item title="SQL 生成文档" to="/doc">
+                    <ui-icon slot="left" value="grade"/>
+                </ui-list-item>
                 <ui-list-item title="关于" to="/about">
                     <ui-icon slot="left" value="grade"/>
                 </ui-list-item>
