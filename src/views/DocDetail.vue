@@ -1,5 +1,5 @@
 <template>
-    <my-page title="数据库文档" :page="page">
+    <my-page class="page-doc" title="数据库文档" :page="page">
         <div class="inline-category-box">
             <div class="index-box">
                 <div class="search-box">
@@ -23,8 +23,8 @@
             <ul class="table-list">
                 <li class="item" :id="'table-' + table.name" v-for="table in tables">
                     <table>
-                        <tr>
-                            <td class="table-name" colspan="6">
+                        <tr class="table-name-row">
+                            <td class="table-name" colspan="6" @click="showTableTool(table)">
                                 {{ table.name }}
                                 <span v-if="table.comment">（{{ table.comment }}）</span>
                             </td>
@@ -38,7 +38,7 @@
                             <th class="column-comment">注释</th>
                         </tr>
                         <tr v-for="row in table.rows">
-                            <td>
+                            <td class="btn-copy" :data-clipboard-text="row.columnName" title="点击复制">
                                 {{ row.columnName }}
                                 <!--<ui-badge class="badge" content="主键" v-if="row.primaryKey" />-->
                                 <img src="/static/img/key.png" class="pk" v-if="row.primaryKey" title="主键"/>
@@ -57,7 +57,7 @@
                 </li>
             </ul>
         </div>
-        <ui-drawer class="category-box" right :open="open" :docked="true" @close="toggle()">
+        <ui-drawer class="category-box" right :open="open" :docked="true" @close="toggleTableTool()">
             <ui-appbar title="目录">
                 <ui-icon-button icon="close" @click="toggle" slot="left" />
             </ui-appbar>
@@ -79,16 +79,68 @@
                 </div>
             </div>
         </ui-drawer>
+        <ui-drawer class="table-tool-box" right :open="tableToolVisible" @close="toggleTableTool()">
+            <ui-appbar :title="table.name" v-if="table">
+                <ui-icon-button icon="close" @click="toggleTableTool" slot="left" />
+            </ui-appbar>
+            <div>
+            </div>
+            <div class="body" v-if="table">
+                {{ '&#123;&#123;baseurl&#125;' }}{{ '&#125;' }}/{{ table.name }}/add
+                <hr>
+
+                <pre>{{ formatedJson }}</pre>
+                <hr>
+
+                <li v-for="row in table.rows">
+                    $data['{{ row.columnName }}'] = $json->{{ row.columnName }};
+                </li>
+                <hr>
+
+                <li v-for="row in table.rows">
+                    $this->checkParamEmpty('{{ row.columnName }}', $json->{{ row.columnName }});
+                </li>
+                <hr>
+
+                <div>
+                    <ul>
+                        <li v-for="row in table.rows">
+                            {{ row.columnName }}
+                        </li>
+                    </ul>
+                    <p>
+                        {{checkList}}
+                    </p>
+                    <ui-checkbox name="group" nativeValue="checkbox1" v-model="list" label="checkbox1" class="demo-checkbox"/> <br/>
+                    <ui-checkbox name="group" nativeValue="checkbox2" v-model="list" label="checkbox2" class="demo-checkbox"/> <br/>
+                    <ui-checkbox name="group" nativeValue="checkbox3" v-model="list" label="checkbox3" class="demo-checkbox"/> <br/>
+                    <div class="demo-checkbox">
+                        你选择的是：{{list}}
+                    </div>
+
+
+                        <label for="all">全选</label>
+                </div>
+
+                <!--{{ table }}-->
+            </div>
+        </ui-drawer>
     </my-page>
 </template>
 
 <script>
+    const ClipboardJS = window.ClipboardJS
+
     export default {
         data () {
             return {
                 keyword: '',
                 tables: [],
                 open: false,
+                // 工具
+                table: null,
+                tableToolVisible: false,
+                list: [],
                 page: {
                     menu: []
                 }
@@ -103,8 +155,42 @@
             window.addEventListener('resize', this.onResize = () => {
                 this.resize()
             }, false)
+            this.clipboard = new ClipboardJS('.btn-copy')
+            this.clipboard.on('success', function (e) {
+//                    console.info('Action:', e.action);
+//                    console.info('Text:', e.text);
+//                    console.info('Trigger:', e.trigger);
+                e.clearSelection()
+            })
+            this.clipboard.on('error', function (e) {
+                console.error('Action:', e.action)
+                console.error('Trigger:', e.trigger)
+            })
         },
         computed: {
+            formatedJson() {
+                let obj = {}
+//                for (let item of this.list) {
+//                    if (typeof item === 'string') {
+//                        obj[item] = ''
+//                    }
+//                    if (typeof item === 'number') {
+//                        obj[item] = 1
+//                    }
+//                }
+                for (let row of this.table.rows) {
+                    if (row.dataType.includes('varchar')) {
+                        obj[row.columnName] = '测试'
+                    }
+                    if (row.dataType.includes('datetime')) {
+                        obj[row.columnName] = '2018-4-20 16:37:40'
+                    }
+                    if (row.dataType.includes('int')) {
+                        obj[row.columnName] = 1
+                    }
+                }
+                return JSON.stringify(obj, null, 4)
+            },
             filtedTables() {
                 if (!this.keyword) {
                     return this.tables
@@ -119,9 +205,17 @@
             }
         },
         destroyed() {
+            this.clipboard.destroy()
             window.removeEventListener('resize', this.onResize)
         },
         methods: {
+            showTableTool(table) {
+                this.table = table
+                this.tableToolVisible = true
+            },
+            toggleTableTool() {
+                this.tableToolVisible = !this.tableToolVisible
+            },
             resize() {
                 if (window.innerWidth < 800) {
                     this.page.menu = [
@@ -150,6 +244,7 @@
                         for (let table of this.tables) {
                             table.id = '' + new Date().getTime()
                         }
+                        this.table = this.tables[0]
                     },
                     response => {
                         console.log(response)
@@ -167,6 +262,10 @@
             },
             toggle() {
                 this.open = !this.open
+            },
+            checkAll() {
+            },
+            checked(item) {
             }
         },
         watch: {
@@ -176,4 +275,14 @@
 
 <style lang="scss" scoped>
     @import "../scss/doc";
+    .btn-copy {
+        cursor: pointer;
+    }
+    .table-tool-box {
+        max-width: 100%;
+        width: 800px;
+        .body {
+            padding: 16px;
+        }
+    }
 </style>
