@@ -9,10 +9,10 @@
                 <div class="index-list-box">
                     <div class="empty" v-if="!filtedTables.length">没有搜索结果~</div>
                     <ul class="index-list">
-                        <li class="item" v-for="table in filtedTables">
+                        <li class="item" v-for="table in filtedTables" :class="{deprecated: table.deprecated}">
                             <a class="link" :href="'#table-' + table.name">
                                 {{ table.name }}
-                                <span v-if="table.comment">（{{ table.comment }}）</span>
+                                <span v-if="table.comment">（{{ table.nameZh }}）</span>
                             </a>
                         </li>
                     </ul>
@@ -21,13 +21,20 @@
         </div>
         <div class="table-box">
             <ul class="table-list">
-                <li class="item" :id="'table-' + table.name" v-for="table in tables">
+                <li class="item" :id="'table-' + table.name" v-for="table, index in tables" :class="{deprecated: table.deprecated}">
                     <table>
                         <tr class="table-name-row">
-                            <td class="table-name" colspan="6" @click="showTableTool(table)">
-                                {{ table.name }}
-                                <span v-if="table.comment">（{{ table.comment }}）</span>
+                            <td class="table-name btn-copy" colspan="5" :data-clipboard-text="table.name" title="点击复制表名">
+                                {{ index + 1 }}. {{ table.name }}
+                                <span v-if="table.comment">（{{ table.nameZh }}）</span>
                             </td>
+                            <td class="op">
+                                <a href="#" @click.prevent="showTableTool(table)">查看</a>
+                            </td>
+                        </tr>
+                        <tr v-if="table.simpleComment">
+                            <th>注释</th>
+                            <td colspan="5">{{ table.simpleComment }}</td>
                         </tr>
                         <tr>
                             <th class="column-name">列名</th>
@@ -37,21 +44,34 @@
                             <th class="column-default">默认值</th>
                             <th class="column-comment">注释</th>
                         </tr>
-                        <tr v-for="row in table.rows">
+                        <tr v-for="row in table.rows" :class="{deprecated: row.deprecated}">
                             <td class="btn-copy" :data-clipboard-text="row.columnName" title="点击复制">
-                                {{ row.columnName }}
+                                <span :class="{deprecated: row.deprecated}">{{ row.columnName }}</span>
                                 <!--<ui-badge class="badge" content="主键" v-if="row.primaryKey" />-->
                                 <img src="/static/img/key.png" class="pk" v-if="row.primaryKey" title="主键"/>
                                 <ui-badge class="badge" content="外键" v-if="row.foreignKey" />
                                 <ui-badge class="badge" content="自增" v-if="row.autoIncrement" />
                             </td>
-                            <td>
+                            <td :class="{deprecated: row.deprecated}">
                                 {{ row.columnNameZh }}
                             </td>
                             <td>{{ formatedDataType(row.dataType) }}</td>
                             <td>{{ row.notNull ? '否' : '是' }}</td>
                             <td>{{ defaultValue(row) }}</td>
-                            <td>{{ row.comment }}</td>
+                            <td>
+                                {{ row.simpleComment }}
+                                <div v-if="row.values">
+                                    取值：
+                                    <br>
+                                    <ul class="value-list">
+                                        <li class="value-item" v-for="value in row.values">
+                                            <span class="name">{{ value.name }}</span>：
+                                            <span class="description">{{ value.description }}</span>
+                                        </li>
+                                    </ul>
+                                    <!--{{ row.values }}-->
+                                </div>
+                            </td>
                         </tr>
                     </table>
                 </li>
@@ -62,6 +82,7 @@
                 <ui-icon-button icon="close" @click="toggle" slot="left" />
             </ui-appbar>
             <div class="body">
+                <!-- TODO refactor -->
                 <div class="index-box">
                     <div class="search-box">
                         <input class="input" v-model="keyword" placeholder="输入名称、分类快速搜索工具">
@@ -79,7 +100,7 @@
                 </div>
             </div>
         </ui-drawer>
-        <ui-drawer class="table-tool-box" right :open="tableToolVisible" @close="toggleTableTool()">
+        <ui-drawer class="table-tool-box" right :open="tableToolVisible" :docked="false" @close="toggleTableTool()">
             <ui-appbar :title="table.name" v-if="table">
                 <ui-icon-button icon="close" @click="toggleTableTool" slot="left" />
             </ui-appbar>
@@ -109,7 +130,7 @@
                         </li>
                     </ul>
                     <p>
-                        {{checkList}}
+                        <!--{{checkList}}-->
                     </p>
                     <ui-checkbox name="group" nativeValue="checkbox1" v-model="list" label="checkbox1" class="demo-checkbox"/> <br/>
                     <ui-checkbox name="group" nativeValue="checkbox2" v-model="list" label="checkbox2" class="demo-checkbox"/> <br/>
@@ -210,6 +231,7 @@
         },
         methods: {
             showTableTool(table) {
+                console.log(table)
                 this.table = table
                 this.tableToolVisible = true
             },
@@ -233,6 +255,7 @@
             debug() {
 //                let url = location.origin + '/static/table2.json'
                 let url = 'http://localhost:9999/wsdgy/database/1.0.1/table.json'
+                url = url + '?time=' + new Date().getTime() // prevent cache
                 this.loadUrl(url)
             },
             loadUrl(url) {
@@ -282,7 +305,16 @@
         max-width: 100%;
         width: 800px;
         .body {
+            position: absolute;
+            top: 64px;
+            left: 0;
+            right: 0;
+            bottom: 0;
             padding: 16px;
+            overflow: auto;
         }
+    }
+    .op {
+        border-left: none;
     }
 </style>
