@@ -85,6 +85,7 @@
     .btns {
         .btn {
             margin-right: 8px;
+            margin-bottom: 16px;
         }
     }
 </style>
