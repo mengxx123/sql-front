@@ -2,7 +2,6 @@ import Vue from 'vue'
 import Router from 'vue-router'
 
 const Home = resolve => require(['@/views/Home'], resolve)
-const About = resolve => require(['@/views/About'], resolve)
 const SqlGenerate = resolve => require(['@/views/SqlGenerate'], resolve)
 const Doc = resolve => require(['@/views/Doc'], resolve)
 const DocDetail = resolve => require(['@/views/DocDetail'], resolve)
@@ -26,10 +25,6 @@ let routes = [
     {
         path: '/doc/detail',
         component: DocDetail
-    },
-    {
-        path: '/about',
-        component: About
     },
     {
         path: '*',
